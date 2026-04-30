@@ -4,6 +4,7 @@ import DashboardLayout from '@/components/DashboardLayout'
 import PeriodSelector from '@/components/PeriodSelector'
 import { Suspense } from 'react'
 import AnalisisChat from './AnalisisChat'
+import { isEmailAuthorized } from '@/utils/auth'
 
 export default async function AnalisisPage(props: { searchParams: Promise<{ period?: string }> }) {
   const supabase = await createClient()
@@ -11,8 +12,8 @@ export default async function AnalisisPage(props: { searchParams: Promise<{ peri
 
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) redirect('/login')
+  if (!isEmailAuthorized(user.email)) redirect('/no-autorizado')
 
-  const sucursal = user.user_metadata?.sucursal || ''
   const period = searchParams.period || 'YTD'
 
   const periodLabels: Record<string, string> = {
@@ -42,7 +43,7 @@ export default async function AnalisisPage(props: { searchParams: Promise<{ peri
       </div>
 
       <div className="glass-card p-6 flex flex-col" style={{ minHeight: 'calc(100vh - 200px)' }}>
-        <AnalisisChat sucursal={sucursal} period={period} />
+        <AnalisisChat sucursal="all" period={period} />
       </div>
     </DashboardLayout>
   )

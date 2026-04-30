@@ -4,6 +4,7 @@ import DashboardLayout from '@/components/DashboardLayout'
 import PeriodSelector from '@/components/PeriodSelector'
 import { Suspense } from 'react'
 import { getGastosMetrics, type SubRubroRow, type EmpleadoRow, type PaqueteRow } from '@/services/gastosMetrics'
+import { isEmailAuthorized } from '@/utils/auth'
 
 export default async function GastosPage(props: { searchParams: Promise<{ period?: string }> }) {
   const supabase = await createClient()
@@ -11,17 +12,15 @@ export default async function GastosPage(props: { searchParams: Promise<{ period
 
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) redirect('/login')
+  if (!isEmailAuthorized(user.email)) redirect('/no-autorizado')
 
-  const sucursal = user.user_metadata?.sucursal
   const period = searchParams.period || 'YTD'
 
   let metrics: any = null
-  if (sucursal) {
-    try {
-      metrics = await getGastosMetrics(sucursal, period)
-    } catch (e) {
-      console.error('Error fetching gastos metrics:', e)
-    }
+  try {
+    metrics = await getGastosMetrics('all', period)
+  } catch (e) {
+    console.error('Error fetching gastos metrics:', e)
   }
 
   if (!metrics) {

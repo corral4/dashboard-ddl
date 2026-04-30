@@ -6,6 +6,7 @@ import CalendarFilter from './CalendarFilter'
 import { Suspense } from 'react'
 import { getSesionesMetrics } from '@/services/sesionesMetrics'
 import SesionesContent from './SesionesContent'
+import { isEmailAuthorized } from '@/utils/auth'
 
 export default async function SesionesPage(props: { searchParams: Promise<{ period?: string; cal?: string }> }) {
   const supabase = await createClient()
@@ -13,18 +14,16 @@ export default async function SesionesPage(props: { searchParams: Promise<{ peri
 
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) redirect('/login')
+  if (!isEmailAuthorized(user.email)) redirect('/no-autorizado')
 
-  const sucursal = user.user_metadata?.sucursal
   const period = searchParams.period || 'YTD'
   const calFilter = (searchParams.cal || 'all') as 'all' | 'cal1' | 'cal2'
 
   let metrics: any = null
-  if (sucursal) {
-    try {
-      metrics = await getSesionesMetrics(sucursal, period, calFilter)
-    } catch (e) {
-      console.error('Error fetching sesiones metrics:', e)
-    }
+  try {
+    metrics = await getSesionesMetrics('all', period, calFilter)
+  } catch (e) {
+    console.error('Error fetching sesiones metrics:', e)
   }
 
   if (!metrics) {

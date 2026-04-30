@@ -6,6 +6,7 @@ import PeriodSelector from '@/components/PeriodSelector'
 import { Suspense } from 'react'
 import { DollarSign, Users, Activity, CreditCard, Wallet } from 'lucide-react'
 import { getMetricsForSucursal } from '@/services/metrics'
+import { isEmailAuthorized } from '@/utils/auth'
 
 export default async function Home(props: { searchParams: Promise<{ period?: string }> }) {
   const supabase = await createClient()
@@ -20,8 +21,10 @@ export default async function Home(props: { searchParams: Promise<{ period?: str
     redirect('/login')
   }
 
-  const sucursal = user.user_metadata?.sucursal
-  
+  if (!isEmailAuthorized(user.email)) {
+    redirect('/no-autorizado')
+  }
+
   let metrics: any = {
     ingresoTotal: 0,
     totalSesiones: 0,
@@ -39,12 +42,10 @@ export default async function Home(props: { searchParams: Promise<{ period?: str
 
   const period = searchParams.period || 'YTD'
 
-  if (sucursal) {
-    try {
-      metrics = await getMetricsForSucursal(sucursal, period)
-    } catch (e) {
-      console.error('Error fetching metrics desde Google Sheets:', e)
-    }
+  try {
+    metrics = await getMetricsForSucursal('all', period)
+  } catch (e) {
+    console.error('Error fetching metrics desde Google Sheets:', e)
   }
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val)

@@ -1,28 +1,26 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { getMetricsForSucursal } from '@/services/metrics'
+import { isEmailAuthorized } from '@/utils/auth'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient()
     
-    // Validar sesión
+    // Validar sesión y permisos
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
-
-    // Obtener la sucursal del metadata del usuario
-    const sucursal = user.user_metadata?.sucursal
-    if (!sucursal) {
-      return NextResponse.json({ error: 'El usuario no tiene una sucursal asignada' }, { status: 400 })
+    if (!isEmailAuthorized(user.email)) {
+      return NextResponse.json({ error: 'Acceso no autorizado' }, { status: 403 })
     }
 
     const url = new URL(request.url)
     const period = url.searchParams.get('period') || 'YTD'
 
     // Obtener métricas desde Google Sheets
-    const metrics = await getMetricsForSucursal(sucursal, period)
+    const metrics = await getMetricsForSucursal('all', period)
     
     return NextResponse.json(metrics)
 
