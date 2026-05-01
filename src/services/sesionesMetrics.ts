@@ -257,6 +257,10 @@ export async function getSesionesMetrics(sucursal: string, period: string = 'YTD
       const finRaw = finIdx !== -1 && row[finIdx] ? row[finIdx].toString().trim() : '';
       const finDate = parseDatetime(finRaw);
       const colorNum = colorIdx !== -1 && row[colorIdx] ? row[colorIdx].toString().trim() : '';
+
+      // Excluir: "11" = cancelados, "8" = hora de comida
+      if (colorNum === '11' || colorNum === '8') continue;
+
       const paqInfo = paq2Map[colorNum] || { nombre: `Paquete ${colorNum || '?'}`, precio: 0 };
 
       allCitas.push({
@@ -409,10 +413,10 @@ export async function getSesionesMetrics(sucursal: string, period: string = 'YTD
     return b.horaInicio.localeCompare(a.horaInicio);
   });
 
-  // --- 8. Construir datos de calendario (año completo, sin canceladas, sin filtro de período) ---
+  // --- 8. Construir datos de calendario (año completo, sin filtro de período) ---
+  // Nota: canceladas (11) y hora de comida (8) ya fueron excluidas en procesarCalendario
   const calendarMap: Record<string, { citas: number; ingreso: number }> = {};
-  const allCitasForCalendar = (calFilter === 'all' ? allCitas : allCitas.filter(c => c.calendario === calFilter))
-    .filter(c => c.paqueteNum !== '11'); // excluir canceladas
+  const allCitasForCalendar = calFilter === 'all' ? allCitas : allCitas.filter(c => c.calendario === calFilter);
   for (const cita of allCitasForCalendar) {
     const parts = cita.fecha.split('/');
     if (parts.length === 3) {
