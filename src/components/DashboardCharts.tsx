@@ -37,7 +37,11 @@ export function MainChart({ data }: MainChartProps) {
           <Tooltip
             contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}
             itemStyle={{ color: '#fafafa' }}
-            formatter={(value: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)}
+            formatter={(value) =>
+              typeof value === 'number'
+                ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value)
+                : ''
+            }
           />
           <Area type="monotone" name="Ventas Reales" dataKey="ventasNetas" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorReal)" />
           <Line type="monotone" name="PPTO" dataKey="pptoVentas" stroke="#9ca3af" strokeWidth={2} strokeDasharray="5 5" dot={false} />
