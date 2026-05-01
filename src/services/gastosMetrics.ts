@@ -110,6 +110,14 @@ function isDateInPeriod(dateObj: Date | null, period: string, currentYear: numbe
 
 // --- Función principal ---
 export async function getGastosMetrics(sucursal: string, period: string = 'YTD'): Promise<GastosMetricsResult> {
+  console.log('[gastosMetrics] === getGastosMetrics START ===');
+  console.log('[gastosMetrics] GOOGLE_CLIENT_EMAIL:', process.env.GOOGLE_CLIENT_EMAIL?.substring(0, 20));
+  console.log('[gastosMetrics] SPREADSHEET_ID:', process.env.GOOGLE_SPREADSHEET_ID?.substring(0, 10));
+  console.log('[gastosMetrics] SPREADSHEET_ID_ACTUAL:', process.env.GOOGLE_SPREADSHEET_ID_ACTUAL?.substring(0, 10));
+  console.log('[gastosMetrics] SPREADSHEET_ID_PPTO:', process.env.GOOGLE_SPREADSHEET_ID_PPTO?.substring(0, 10));
+  console.log('[gastosMetrics] PRIVATE_KEY exists:', !!process.env.GOOGLE_PRIVATE_KEY);
+
+  try {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
@@ -453,4 +461,17 @@ export async function getGastosMetrics(sucursal: string, period: string = 'YTD')
     sesionesReales,
     pptoClientes,
   };
+
+  } catch (error) {
+    console.error('[gastosMetrics] ERROR en getGastosMetrics:', error);
+    return {
+      gastosOperacionReal: 0, gastosOperacionPpto: 0,
+      nominaReal: 0, nominaPpto: 0,
+      costoVentaReal: 0, costoVentaPpto: 0,
+      gastosOperacionDetalle: [], nominaDetalle: [], costoVentaDetalle: [],
+      ventasPorPaquete: [],
+      margenBrutoReal: 0, margenBrutoPpto: 0,
+      sesionesReales: 0, pptoClientes: 0,
+    };
+  }
 }

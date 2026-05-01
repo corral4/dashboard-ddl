@@ -110,6 +110,14 @@ function isDateInPeriod(dateObj: Date | null, period: string, currentYear: numbe
 }
 
 export async function getMetricsForSucursal(sucursal: string, period: string = 'YTD'): Promise<MetricsResult> {
+  console.log('[metrics] === getMetricsForSucursal START ===');
+  console.log('[metrics] GOOGLE_CLIENT_EMAIL:', process.env.GOOGLE_CLIENT_EMAIL?.substring(0, 20));
+  console.log('[metrics] SPREADSHEET_ID:', process.env.GOOGLE_SPREADSHEET_ID?.substring(0, 10));
+  console.log('[metrics] SPREADSHEET_ID_ACTUAL:', process.env.GOOGLE_SPREADSHEET_ID_ACTUAL?.substring(0, 10));
+  console.log('[metrics] SPREADSHEET_ID_PPTO:', process.env.GOOGLE_SPREADSHEET_ID_PPTO?.substring(0, 10));
+  console.log('[metrics] PRIVATE_KEY exists:', !!process.env.GOOGLE_PRIVATE_KEY);
+
+  try {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
@@ -404,4 +412,15 @@ export async function getMetricsForSucursal(sucursal: string, period: string = '
       ...data
     }))
   };
+
+  } catch (error) {
+    console.error('[metrics] ERROR en getMetricsForSucursal:', error);
+    return {
+      ingresoTotal: 0, totalSesiones: 0, anticipoAcumulado: 0, saldoPendiente: 0,
+      egresoTotal: 0, margenNeto: 0, margenPorcentaje: 0,
+      pptoIngresos: 0, pptoEgresos: 0, desviacionIngresos: 0, desviacionEgresos: 0,
+      ventasNetas: 0, egresoResultados: 0, pptoVentas: 0, pptoEgresosResultados: 0,
+      pptoClientes: 0, desviacionVentas: 0, desviacionVentasPct: 0, monthlyData: [],
+    };
+  }
 }
