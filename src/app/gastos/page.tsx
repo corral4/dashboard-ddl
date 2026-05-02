@@ -333,6 +333,7 @@ function PaqueteTable({ rows, fmt, fmtPct }: { rows: PaqueteRow[]; fmt: (v: numb
   const totalPpto = rows.reduce((s, r) => s + r.pptoIngreso, 0);
   const totalDesv = totalIngreso - totalPpto;
   const totalDesvPct = totalPpto !== 0 ? (totalDesv / totalPpto) * 100 : 0;
+  const totalMargenBruto = rows.reduce((s, r) => s + r.margenBruto, 0);
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -346,6 +347,7 @@ function PaqueteTable({ rows, fmt, fmtPct }: { rows: PaqueteRow[]; fmt: (v: numb
             <th className="pb-3 pr-4 font-medium text-right">PPTO Ingreso</th>
             <th className="pb-3 pr-4 font-medium text-right">Desviación $</th>
             <th className="pb-3 pr-4 font-medium text-right">Desviación %</th>
+            <th className="pb-3 pr-4 font-medium text-right">Margen Bruto</th>
             <th className="pb-3 font-medium w-32">vs PPTO</th>
           </tr>
         </thead>
@@ -368,6 +370,9 @@ function PaqueteTable({ rows, fmt, fmtPct }: { rows: PaqueteRow[]; fmt: (v: numb
                 </td>
                 <td className={`py-3 pr-4 text-right ${row.desviacion >= 0 ? 'text-primary' : 'text-destructive'}`}>
                   {fmtPct(row.desviacionPct)}
+                </td>
+                <td className={`py-3 pr-4 text-right font-medium ${row.margenBruto >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-destructive'}`}>
+                  {fmt(row.margenBruto)}
                 </td>
                 <td className="py-3">
                   <div className="h-2 bg-secondary rounded-full overflow-hidden">
@@ -393,6 +398,7 @@ function PaqueteTable({ rows, fmt, fmtPct }: { rows: PaqueteRow[]; fmt: (v: numb
             <td className="py-3 pr-4 text-right text-muted-foreground">{fmt(totalPpto)}</td>
             <td className={`py-3 pr-4 text-right ${totalDesv >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmt(totalDesv)}</td>
             <td className={`py-3 pr-4 text-right ${totalDesv >= 0 ? 'text-primary' : 'text-destructive'}`}>{fmtPct(totalDesvPct)}</td>
+            <td className={`py-3 pr-4 text-right font-medium ${totalMargenBruto >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-destructive'}`}>{fmt(totalMargenBruto)}</td>
             <td></td>
           </tr>
         </tfoot>

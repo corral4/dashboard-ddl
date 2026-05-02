@@ -26,6 +26,8 @@ export interface PaqueteRow {
   pptoIngreso: number;
   desviacion: number;
   desviacionPct: number;
+  costoVentaReal: number;
+  margenBruto: number;
 }
 
 export interface GastosMetricsResult {
@@ -428,6 +430,7 @@ export async function getGastosMetrics(sucursal: string, period: string = 'YTD')
     const ventas = ventasByPaquete[paquete] || { sesiones: 0, ingreso: 0 };
     const pptoIngreso = pptoVentasBySubRubro[paquete] || 0;
     const pptoSesiones = pptoSesionesByPaquete[paquete] || 0;
+    const costoVentaReal = costoVentaByPaquete[paquete]?.real || 0;
     ventasPorPaquete.push({
       paquete,
       sesiones: ventas.sesiones,
@@ -437,6 +440,8 @@ export async function getGastosMetrics(sucursal: string, period: string = 'YTD')
       pptoIngreso,
       desviacion: ventas.ingreso - pptoIngreso,
       desviacionPct: pptoIngreso !== 0 ? ((ventas.ingreso - pptoIngreso) / pptoIngreso) * 100 : 0,
+      costoVentaReal,
+      margenBruto: ventas.ingreso - costoVentaReal,
     });
   }
   ventasPorPaquete.sort((a, b) => b.ingresoReal - a.ingresoReal);
