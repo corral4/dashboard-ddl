@@ -258,9 +258,9 @@ export async function getSesionesMetrics(sucursal: string, period: string = 'YTD
       const finDate = parseDatetime(finRaw);
       const colorNum = colorIdx !== -1 && row[colorIdx] ? row[colorIdx].toString().trim() : '';
 
-      // Excluir: "11" = cancelados, "8" = hora de comida
-      if (colorNum === '11' || colorNum === '8') continue;
-
+      // Excluir: "8" = hora de comida (silencioso)
+      if (colorNum === '8') continue;
+      // Nota: "11" (cancelados) se procesa para contar en tarjetas, pero se excluye de tablas luego
       const paqInfo = paq2Map[colorNum] || { nombre: `Paquete ${colorNum || '?'}`, precio: 0 };
 
       allCitas.push({
@@ -413,10 +413,11 @@ export async function getSesionesMetrics(sucursal: string, period: string = 'YTD
     return b.horaInicio.localeCompare(a.horaInicio);
   });
 
-  // --- 8. Construir datos de calendario (año completo, sin filtro de período) ---
-  // Nota: canceladas (11) y hora de comida (8) ya fueron excluidas en procesarCalendario
+  // --- 8. Construir datos de calendario (año completo, sin canceladas, sin filtro de período) ---
+  // Nota: hora de comida (8) ya fue excluida en procesarCalendario
   const calendarMap: Record<string, { citas: number; ingreso: number }> = {};
-  const allCitasForCalendar = calFilter === 'all' ? allCitas : allCitas.filter(c => c.calendario === calFilter);
+  const allCitasForCalendar = (calFilter === 'all' ? allCitas : allCitas.filter(c => c.calendario === calFilter))
+    .filter(c => c.paqueteNum !== '11'); // excluir canceladas
   for (const cita of allCitasForCalendar) {
     const parts = cita.fecha.split('/');
     if (parts.length === 3) {
