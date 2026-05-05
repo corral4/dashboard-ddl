@@ -91,6 +91,25 @@ function parseDate(dateStr: string | undefined): Date | null {
   return null;
 }
 
+function parseCalendarDate(dateStr: string | undefined): Date | null {
+  if (!dateStr) return null;
+  const str = dateStr.toString().trim();
+  const parts = str.split(' ');
+  const dateParts = parts[0].split('/');
+  if (dateParts.length !== 3) return null;
+  
+  const day = parseInt(dateParts[0]);
+  const month = parseInt(dateParts[1]) - 1;
+  const year = parseInt(dateParts[2]);
+  
+  if (parts[1]) {
+    const timeParts = parts[1].split(':');
+    return new Date(year, month, day, 
+      parseInt(timeParts[0]), parseInt(timeParts[1]));
+  }
+  return new Date(year, month, day);
+}
+
 function parseDatetime(dtStr: string | undefined): Date | null {
   if (!dtStr) return null;
   const s = dtStr.toString().trim();
@@ -210,6 +229,14 @@ export async function getSesionesMetrics(sucursal: string, period: string = 'YTD
 
   // --- 2. Leer calendarios ---
   const allCitas: SesionCita[] = [];
+  
+  // --- DEBUG VARIABLES ---
+  let dbgTotalLeidas = 0;
+  let dbgTotalValidas = 0;
+  const dbgPorDia: Record<string, number> = {};
+  const dbgInicioSamples: string[] = [];
+  // -----------------------
+
   const procesarCalendario = async (calId: string | undefined, calTag: 'cal1' | 'cal2') => {
     if (!calId) { console.log(`DIAG ${calTag}: ID no configurado (env var vacía)`); return; }
     console.log(`DIAG ${calTag}: ID="${calId.substring(0, 10)}..." (${calId.length} chars)`);
@@ -242,8 +269,9 @@ export async function getSesionesMetrics(sucursal: string, period: string = 'YTD
       const row = rows[i];
       if (!row || row.length === 0) continue;
 
-      const inicioRaw = inicioIdx !== -1 && row[inicioIdx] ? row[inicioIdx].toString().trim() : '';
-      const dateObj = parseDatetime(inicioRaw);
+      const exactInicio = inicioIdx !== -1 && row[inicioIdx] ? row[inicioIdx].toString() : '';
+      const inicioRaw = exactInicio.trim();
+      const dateObj = parseCalendarDate(inicioRaw);
 
       // Recoger samples ANTES del filtro de fecha para ver todos los valores
       if (colorSamples.length < 5) {
@@ -252,14 +280,35 @@ export async function getSesionesMetrics(sucursal: string, period: string = 'YTD
         colorSamples.push(`Color raw="${rawColor}" trimmed="${rawColor.trim()}" evento="${rawEvento}" inicio="${inicioRaw}"`);
       }
 
+      // --- INICIO DEBUG MES ACTUAL ---
+      const isCurrentMonthDbg = dateObj && dateObj.getFullYear() === currentYear && dateObj.getMonth() === currentMonth;
+      if (isCurrentMonthDbg) {
+        dbgTotalLeidas++;
+      }
+      if (dbgInicioSamples.length < 5) {
+        if (isCurrentMonthDbg || exactInicio.includes(`/${String(currentMonth + 1).padStart(2, '0')}/`) || exactInicio.includes(`${String(currentMonth + 1).padStart(2, '0')}/`)) {
+          dbgInicioSamples.push(exactInicio);
+        }
+      }
+      // --- FIN DEBUG ---
+
       if (!isDateInPeriod(dateObj, period, currentYear, currentMonth)) continue;
 
       const finRaw = finIdx !== -1 && row[finIdx] ? row[finIdx].toString().trim() : '';
-      const finDate = parseDatetime(finRaw);
+      const finDate = parseCalendarDate(finRaw);
       const colorNum = colorIdx !== -1 && row[colorIdx] ? row[colorIdx].toString().trim() : '';
 
       // Excluir: "8" = hora de comida (silencioso)
       if (colorNum === '8') continue;
+
+      // --- INICIO DEBUG MES ACTUAL ---
+      if (isCurrentMonthDbg && colorNum !== '11') {
+        dbgTotalValidas++;
+        const dStr = formatDateStr(dateObj!);
+        dbgPorDia[dStr] = (dbgPorDia[dStr] || 0) + 1;
+      }
+      // --- FIN DEBUG ---
+
       // Nota: "11" (cancelados) se procesa para contar en tarjetas, pero se excluye de tablas luego
       const paqInfo = paq2Map[colorNum] || { nombre: `Paquete ${colorNum || '?'}`, precio: 0 };
 
@@ -348,6 +397,17 @@ export async function getSesionesMetrics(sucursal: string, period: string = 'YTD
     procesarVentasOtros('VENTAS'),
     procesarVentasOtros('OTROS'),
   ]);
+
+  console.log('\n===== DEBUG MES ACTUAL =====');
+  console.log(`1. Total citas leídas (antes de filtros): ${dbgTotalLeidas}`);
+  console.log(`2. Total válidas (sin Color 8 ni 11): ${dbgTotalValidas}`);
+  console.log('3. Distribución por día:');
+  Object.keys(dbgPorDia).sort().forEach(d => {
+    console.log(`   ${d}: ${dbgPorDia[d]}`);
+  });
+  console.log('4. Primeros 5 valores "Inicio" exactos del Sheet:');
+  dbgInicioSamples.forEach((s, i) => console.log(`   ${i+1}. "${s}"`));
+  console.log('============================\n');
 
   // --- 4. Cruzar citas con ventas para marcar "realizada" ---
   for (const cita of allCitas) {
